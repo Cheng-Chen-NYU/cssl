@@ -1,18 +1,18 @@
-# ECE-GY 9123: Deep Learning
+# <center>ECE-GY 9123: Deep Learning</center>
 
-## Course Project: Contrastive Self-Supervised Learning in Computer Vision
+## <center>Course Project: Contrastive Self-Supervised Learning in Computer Vision</center>
 
-##### Created by Yimiao Zhang, Cheng Chen
+##### <center>Created by Yimiao Zhang, Cheng Chen</center>
 
-##### NetIDs: yz6756, cc6858
+##### <center>NetIDs: yz6756, cc6858</center>
 
-##### [Click here for project milestone](#milestone)
+##### <center>[Click here for project milestone](#milestone)</center>
 
-##### [Click here for project plan](#plan)
+##### <center>[Click here for project plan](#plan)</center>
 
-##### [Click here for project proposal](#proposal)
+##### <center>[Click here for project proposal](#proposal)</center>
 
-## <span id="proposal">Course Project Proposal</span>
+## <center><span id="proposal">Course Project Proposal</span></center>
 
 ### Overview
 
