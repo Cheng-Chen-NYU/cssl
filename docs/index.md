@@ -8,13 +8,77 @@
 
 ### Problem Statement
 
+Pre-training and fine-tuning paradigm in computer vision can date back to CVPR 2009 when ImageNet database was presented. Afterwards, AlexNet, VGG, Inception, ResNet and so on can be pre-trained on ImageNet with high classification accuracy. Further, representations from these pre-trained model can be transferred to downstream tasks such as object detection and semantic segmentation. This kind of supervised pre-training is still dominant in computer vision. Recent years, unsupervised representation learning is highly successful in natural language processing, e.g., as shown by GPT and BERT. Learning effective visual representation without human supervision is a long-standing problem while recent studies[1,2,3,4] are converging on a central concept known as contrastive learning where visual representations (i.e., features) are pre-trained by contrasting positive and negative examples.
+
 ### Literature Survey
+
+MoCo
+
+- Momentum Contrast as a way of building large and consistent dictionaries for unsupervised learning with a contrastive loss.
+
+SimCLR
+
+MoCo v2
+
+SimCLR v2
 
 ### Datasets
 
+Training
+
+- CIFAR-10: $60,000\ 32\times 32$ color images in 10 different classes
+
+- IN-1M: ImageNet with 1.28M images
+
+- IG-1B: Instagram with 940M images
+
+Transfer Learning
+
+- COCO
+  - Detection evaluation metrics used by COCO [https://cocodataset.org/#detection-eval]
+
+- PASCAL VOC
+
 ### Models
 
+
+
+Train
+
+- ResNet 18/50 + MLP
+
+- Contrastive Loss Function
+
+Test
+
+- kNN monitor
+- Linear classification on frozen features
+- Learn features that are transferrable
+  - Compare MoCo with ImageNet supervised pre-training, transferred to various tasks including PASCAL VOC Object Detection, COCO Object Detection and Segmentation.
+
 ### Goals and Deliverables
+
+SimCLR TPU
+
+MoCo Multiple GPU 
+
+Simulate the Multi-GPU behavior in Colab's 1-GPU environment
+
+MoCo v2/SimCLR v2
+
+We will mainly focus on MoCo v1&v2 and SimCLR v1&v2 papers. They provide COLAB version.
+
+kNN monitor
+
+#### References
+
+[1]: Kaiming He, Haoqi Fan, Yuxin Wu, Saining Xie, and Ross Girshick. Momentum contrast for unsupervised visual representation learning. CVPR, arXiv:1911.05722, 2019.
+
+[2]: Ting Chen, Simon Kornblith, Mohammad Norouzi, and Geoffrey Hinton. A simple framework for contrastive learning of visual representations. ICML, arXiv:2002.05709, 2020.
+
+[3]: Xinlei Chen, Haoqi Fan, Ross Girshick, and Kaiming He. Improved baselines with momentum contrastive learning. arXiv:2003.04297, 2020.
+
+[4]: Ting Chen, Simon Kornblith, Kevin Swersky, Mohammad Norouzi, and Geoffrey Hinton. Big self-supervised models are strong semi-supervised learners. NeurIPS, arXiv:2006.10029, 2020.
 
 ## Proposal
 
@@ -34,4 +98,4 @@ Our baseline goal is to have a deep and thorough understanding of contrastive vi
 
 [1]: https://arxiv.org/abs/1810.04805	"BERT"
 [2]: https://arxiv.org/abs/1911.05722	"MoCo"
-[3]: https://arxiv.org/abs/2006.10029	"SimCLR"
+[3]: https://arxiv.org/abs/2002.05709	"SimCLR"
