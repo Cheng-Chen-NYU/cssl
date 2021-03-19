@@ -4,6 +4,18 @@
 
 ### ©️ Cheng Chen(cc6858@nyu.edu), Yimiao Zhang(yz6756@nyu.edu)
 
+## Plan
+
+### Problem Statement
+
+### Literature Survey
+
+### Datasets
+
+### Models
+
+### Goals and Deliverables
+
 ## Proposal
 
 ### Problem Statement
