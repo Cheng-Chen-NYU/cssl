@@ -1,10 +1,6 @@
-# ECE-GY 9123: Deep Learning
+## Contrastive Visual Representation Learning Techniques
 
-## Course Project: Contrastive Visual Representation Learning Techniques
-
-### ©️ Cheng Chen(cc6858@nyu.edu), Yimiao Zhang(yz6756@nyu.edu)
-
-## Proposal
+� Cheng Chen(cc6858@nyu.edu), Yimiao Zhang (yz6756@nyu.edu)
 
 ### Problem Statement
 
