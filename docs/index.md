@@ -10,7 +10,30 @@
 
 Pre-training and fine-tuning paradigm in computer vision can date back to $\text{CVPR}$ 2009 when ImageNet database was presented. Afterwards, $\text{AlexNet, VGG, Inception, ResNet}$ and so on can be pre-trained on $\text{ImageNet}$ with high classification accuracy. Further, representations from these pre-trained model can be transferred to downstream tasks such as object detection and semantic segmentation. This kind of supervised pre-training is still dominant in computer vision. Recent years, unsupervised representation learning is highly successful in natural language processing, e.g., as shown by GPT and BERT. Language tasks have discrete signal space (words, sub-word units, etc.) while the raw signal of vision tasks is in a continuous, high dimensional space[^1]. Learning effective visual representation without human supervision is a long-standing problem while recent studies[^1][^2][^3][^4] are converging on a central concept known as **contrastive learning** where visual representations (i.e., features) are pre-trained by contrasting positive and negative examples.
 
-### Literature Survey & Models
+### Literature Survey
+
+**MoCo**[^1]  builds a dynamic dictionary with a queue and a moving-averaged encoder. This enables building a large and consistent dictionary on-the-fly that facilitates contrastive unsupervised learning. 
+
+**SimCLR**[^2]  obtains two correlated views for each data example. A base encoder network $f(\cdot)$ and a projection head $g(\cdot)$ are trained to maximize agreement using a contrastive loss. $f(\cdot)$ encodes the view and $g(\cdot)$ projects that representation to loss space. 
+
+**MoCo v2**[^3] implements two of *SimCLR*’s design improvements, MLP projection head and more data augmentation, in the MoCo framework. This establishes stronger baselines that outperform *SimCLR* and do not require large training bataches.
+
+**SimCLR v2**[^4]  uses a deeper and wider encoder network $f(\cdot)$ and a deeper projection head $g(\cdot)$  based on the original SimCLR.
+
+### Datasets
+
+- $\text{CIFAR-10/CIFAR-100}$:
+  - The $\text{CIFAR-10}$ dataset consists of 60000 32x32 colour images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images.
+  - The $\text{CIFAR-100}$ dataset has 100 classes containing 600 images each. There are 500 training images and 100 testing images per class. The 100 classes in the $\text{CIFAR-100}$ are grouped into 20 superclasses. Each image comes with a "fine" label (the class to which it belongs) and a "coarse" label (the superclass to which it belongs).
+- $\text{ImageNet ILSVRC 2012}$ (subset)
+  - 1% $\rightarrow$ 12811 images
+  - 10% $\rightarrow$ 128116 images
+  - Original $\rightarrow$ 1.28M images: This is the ImageNet training set that has ~1.28 million images in 1000 classes. This dataset is well-balanced in its class distribution, and its images generally contain iconic view of objects.
+
+- $\text{PASCAL VOC}$ `trainval` and `test` set
+  - A benchmark in visual object category recognition and detection consisting of a publicly available dataset of images and annotation
+
+### Models
 
 Various methods of contrastive learning can be thought of as building dynamic dictionaries where encoders perform dictionary look-up: an encoded "query" should be similar to its matching key and dissimilar to others.
 
@@ -41,20 +64,6 @@ $\text{SimCLR v2}$[^4] adopts $\text{SimCLR}$ and improves it in three major way
 3. Explore memory/dictionary mechanism in $\text{MoCo}$.
 
 Authors further propose a three-step semi-supervised learning algorithm --- unsupervised pretraining of a big $\text{ResNet}$ model using $\text{SimCLR v2}$, supervised fine-tuning on a few labeled examples, and distillation with unlabeled examples for refining and transferring the task-specific knowledge.
-
-### Datasets
-
-- $\text{CIFAR-10/CIFAR-100}$:
-  - The $\text{CIFAR-10}$ dataset consists of 60000 32x32 colour images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images.
-  - The $\text{CIFAR-100}$ dataset has 100 classes containing 600 images each. There are 500 training images and 100 testing images per class. The 100 classes in the $\text{CIFAR-100}$ are grouped into 20 superclasses. Each image comes with a "fine" label (the class to which it belongs) and a "coarse" label (the superclass to which it belongs).
-- $\text{ImageNet ILSVRC 2012}$ (subset)
-  - 1% $\rightarrow$ 12811 images
-  - 10% $\rightarrow$ 128116 images
-  - Original $\rightarrow$ 1.28M images
-
-- $\text{PASCAL VOC}$ `trainval` and `test` set
-
-### Models
 
 ### Goals and Deliverables
 
