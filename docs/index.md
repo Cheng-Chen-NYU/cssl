@@ -1,86 +1,83 @@
-# ECE-GY 9123: Deep Learning
+***ECE-GY 9123: Deep Learning***
 
-## Course Project: Contrastive Visual Representation Learning Techniques
+## Contrastive Visual Representation Learning
 
-### ©️ Cheng Chen(cc6858@nyu.edu), Yimiao Zhang(yz6756@nyu.edu)
+©️ Cheng Chen(cc6858@nyu.edu), Yimiao Zhang(yz6756@nyu.edu)
 
-## Plan
+## Project Plan
 
 ### Problem Statement
 
-Pre-training and fine-tuning paradigm in computer vision can date back to CVPR 2009 when ImageNet database was presented. Afterwards, AlexNet, VGG, Inception, ResNet and so on can be pre-trained on ImageNet with high classification accuracy. Further, representations from these pre-trained model can be transferred to downstream tasks such as object detection and semantic segmentation. This kind of supervised pre-training is still dominant in computer vision. Recent years, unsupervised representation learning is highly successful in natural language processing, e.g., as shown by GPT and BERT. Learning effective visual representation without human supervision is a long-standing problem while recent studies[1,2,3,4] are converging on a central concept known as contrastive learning where visual representations (i.e., features) are pre-trained by contrasting positive and negative examples.
+Pre-training and fine-tuning paradigm in computer vision can date back to $\text{CVPR}$ 2009 when ImageNet database was presented. Afterwards, $\text{AlexNet, VGG, Inception, ResNet}$ and so on can be pre-trained on $\text{ImageNet}$ with high classification accuracy. Further, representations from these pre-trained model can be transferred to downstream tasks such as object detection and semantic segmentation. This kind of supervised pre-training is still dominant in computer vision. Recent years, unsupervised representation learning is highly successful in natural language processing, e.g., as shown by GPT and BERT. Language tasks have discrete signal space (words, sub-word units, etc.) while the raw signal of vision tasks is in a continuous, high dimensional space[^1]. Learning effective visual representation without human supervision is a long-standing problem while recent studies[^1][^2][^3][^4] are converging on a central concept known as **contrastive learning** where visual representations (i.e., features) are pre-trained by contrasting positive and negative examples.
 
-### Literature Survey
+### Literature Survey & Models
 
-MoCo
+Various methods of contrastive learning can be thought of as building dynamic dictionaries where encoders perform dictionary look-up: an encoded "query" should be similar to its matching key and dissimilar to others.
 
-- Momentum Contrast as a way of building large and consistent dictionaries for unsupervised learning with a contrastive loss.
+$\text{MoCo}$[^1] hypothesizes that it is desirable to build dictionaries that are large and consistent. Intuitively, a larger dictionary may better sample the underlying continuous, high-dimensional visual space, while the keys in the dictionary should be represented by the same or similar encoder so that their comparisons to the query are consistent. With similarity measured by dot product, $\text{MoCo}$ considers the $\text{InfoNCE}$ contrastive loss function
+$$
+\mathcal L_q=-\log\frac{\exp(q\cdot k_+/\tau)}{\sum_{i=1}^K\exp(q\cdot k_i/\tau)}
+$$
+where $q$ is the encoded image query $x$ and $\{k_1,k_2,k_3\ldots\}$ are encoded samples/keys of the dictionary. $q$ and $k_+$ which are two random augmented version of $x$ are psudo-labeled as positive pairs. The dictionary is maintained as a queue where the current minibatch is enqueued and the oldest minibatch is removed. Dictionary size $K$ can vary from 256 to 65536 and the larger the better. Suppose the query encoder is $f_q(\cdot)$ with parameter $\theta_q$ and the key encoder $f_k(\cdot)$ with parameter $\theta_k$. $\theta_q$ is updated simply by $\text{SGD}$ while $\text{MoCo}$ does a momentum update to $\theta_k$ where
+$$
+\theta_k\leftarrow m\theta_k+(1-m)\theta_q
+$$
+$\text{SimCLR}$[^2] doesn't adopt a dictionary mechanism explicitly. Instead, by training with a large batch size such as 8192, the batch itself can function as a dictionary and each augmented data example can function as "query" or "key". More specifically, two separate data augmentation operators $t(\cdot),t'(\cdot)$ are sampled from the same family of augmentations and applied to each data example to obtain two correlated views, i.e., a positive pair. A batch of size $N$ gives us $2(N-1)$ negative examples per positive pair from both augmented views. The loss function for a positive pair of examples $(i,j)$ is defined as
+$$
+\ell_{i,j}=-\log\frac{\exp(\text{sim}(z_i,z_j)/\tau)}{\sum_{k=1}^{2N}\mathbf 1 _{[k\ne i]}\exp(\text{sim}(z_i,z_k)/\tau)}
+$$
+Here, $\mathbf 1 _{[k\ne i]}\in\{0,1\}$ is an indicator function evaluating to 1 iff $k\ne i$, $\tau$ denotes a temperature parameter, $\text{sim}(u,v)=(u^Tv)/\|u\|\|v\|$ denotes the cosine similarity and 
+$$
+z_i=g(f(t(x_i)))
+$$
+where $t(\cdot)$ denotes the *data augmentation* function, $f(\cdot)$ denotes the *base encoder* which is a $\text{ResNet}$, and $g(\cdot)$ denotes the *projection head* which is a 2-layer $\text{MLP}$ to project representation to loss space. The final loss is computed across all positive pairs, both $(i, j)$ and $(j, i)$, in a batch. This loss is termed as $\text{NT-Xent}$(the normalized temparature-scaled cross entropy loss).
 
-SimCLR
+$\text{MoCo v2}$[^3] verifies the effectiveness of two of $\text{SimCLR}$'s design improvements by implementing them in the $\text{MoCo}$ framework --- using an $\text{MLP}$ projection head and more data augmentation. It does not require large training batches. For fair comparisons, they also study a cosine (half-period) learning rate schedule which $\text{SimCLR}$ adopts.
 
-MoCo v2
+$\text{SimCLR v2}$[^4] adopts $\text{SimCLR}$ and improves it in three major ways.
 
-SimCLR v2
+1. Explore larger models: From $\text{ResNet-}50(4\times)$ to $\text{ResNet-}152(3\times\text{+SK})$.
+2. Explore deeper projection head $g(\cdot)$: From 2-layer to 3-layer. Instead of throwing it entirely, fine-tune from the $1st$ layer of projection head.
+3. Explore memory/dictionary mechanism in $\text{MoCo}$.
+
+Authors further propose a three-step semi-supervised learning algorithm --- unsupervised pretraining of a big $\text{ResNet}$ model using $\text{SimCLR v2}$, supervised fine-tuning on a few labeled examples, and distillation with unlabeled examples for refining and transferring the task-specific knowledge.
 
 ### Datasets
 
-Training
+- $\text{CIFAR-10/CIFAR-100}$:
+  - The $\text{CIFAR-10}$ dataset consists of 60000 32x32 colour images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images.
+  - The $\text{CIFAR-100}$ dataset has 100 classes containing 600 images each. There are 500 training images and 100 testing images per class. The 100 classes in the $\text{CIFAR-100}$ are grouped into 20 superclasses. Each image comes with a "fine" label (the class to which it belongs) and a "coarse" label (the superclass to which it belongs).
+- $\text{ImageNet ILSVRC 2012}$ (subset)
+  - 1% $\rightarrow$ 12811 images
+  - 10% $\rightarrow$ 128116 images
+  - Original $\rightarrow$ 1.28M images
 
-- CIFAR-10: $60,000\ 32\times 32$ color images in 10 different classes
-
-- IN-1M: ImageNet with 1.28M images
-
-- IG-1B: Instagram with 940M images
-
-Transfer Learning
-
-- COCO
-  - Detection evaluation metrics used by COCO [https://cocodataset.org/#detection-eval]
-
-- PASCAL VOC
+- $\text{PASCAL VOC}$ `trainval` and `test` set
 
 ### Models
 
-
-
-Train
-
-- ResNet 18/50 + MLP
-
-- Contrastive Loss Function
-
-Test
-
-- kNN monitor
-- Linear classification on frozen features
-- Learn features that are transferrable
-  - Compare MoCo with ImageNet supervised pre-training, transferred to various tasks including PASCAL VOC Object Detection, COCO Object Detection and Segmentation.
-
 ### Goals and Deliverables
 
-SimCLR TPU
+We will mainly focus on $\text{MoCo v1&v2}$ and $\text{SimCLR v1&v2}$ papers. $\text{MoCo}$ trains on $\text{ImageNet}$ with 8 GPUs. $\text{SimCLR}$ trains its model with Cloud TPU using 32 to 128 cores depending on batch size. We have limited time and resources compared to paper authors and anticipated outcomes are
 
-MoCo Multiple GPU 
+1. Have a deep and thorough understanding of contrastive visual representation learning techniques, their inner nature, similarities, pros and cons, recent progress and powerful potential
 
-Simulate the Multi-GPU behavior in Colab's 1-GPU environment
+2. Simulate the Multi-GPU/TPU behavior in Colab's 1-GPU environment
 
-MoCo v2/SimCLR v2
+3. Implement models with the core concepts from $\text{MoCo v1&v2}$ and $\text{SimCLR v1&v2}$
 
-We will mainly focus on MoCo v1&v2 and SimCLR v1&v2 papers. They provide COLAB version.
+4. Evaluate our implementation and expect comparable results
 
-kNN monitor
+   - $\text{kNN}$ monitor
 
-#### References
+   - ImageNet linear classification
+     - Features are frozen and a supervised linear classifier is trained
+     - Metric: 1-crop ($224\times224$), top-1 validation accuracy
+   - Transferring to $\text{VOC}$ objection detrction
+     - A Faster $\text{R-CNN}$ detector (C4-backbone) is fine-tuned end-to-end on the $\text{VOC 07+12}$ `trainval` set and evaluated on the $\text{VOC 07}$ `test` set
+     - Metric: $\text{COCO}$ suite of metrics
 
-[1]: Kaiming He, Haoqi Fan, Yuxin Wu, Saining Xie, and Ross Girshick. Momentum contrast for unsupervised visual representation learning. CVPR, arXiv:1911.05722, 2019.
-
-[2]: Ting Chen, Simon Kornblith, Mohammad Norouzi, and Geoffrey Hinton. A simple framework for contrastive learning of visual representations. ICML, arXiv:2002.05709, 2020.
-
-[3]: Xinlei Chen, Haoqi Fan, Ross Girshick, and Kaiming He. Improved baselines with momentum contrastive learning. arXiv:2003.04297, 2020.
-
-[4]: Ting Chen, Simon Kornblith, Kevin Swersky, Mohammad Norouzi, and Geoffrey Hinton. Big self-supervised models are strong semi-supervised learners. NeurIPS, arXiv:2006.10029, 2020.
-
-## Proposal
+## Project Proposal
 
 ### Problem Statement
 
@@ -99,3 +96,10 @@ Our baseline goal is to have a deep and thorough understanding of contrastive vi
 [1]: https://arxiv.org/abs/1810.04805	"BERT"
 [2]: https://arxiv.org/abs/1911.05722	"MoCo"
 [3]: https://arxiv.org/abs/2002.05709	"SimCLR"
+
+#### References
+
+[^1]: Kaiming He, Haoqi Fan, Yuxin Wu, Saining Xie, and Ross Girshick. Momentum contrast for unsupervised visual representation learning. CVPR, arXiv:1911.05722, 2019.
+[^2]: Ting Chen, Simon Kornblith, Mohammad Norouzi, and Geoffrey Hinton. A simple framework for contrastive learning of visual representations. ICML, arXiv:2002.05709, 2020.
+[^3]: Xinlei Chen, Haoqi Fan, Ross Girshick, and Kaiming He. Improved baselines with momentum contrastive learning. arXiv:2003.04297, 2020.
+[^4]: Ting Chen, Simon Kornblith, Kevin Swersky, Mohammad Norouzi, and Geoffrey Hinton. Big self-supervised models are strong semi-supervised learners. NeurIPS, arXiv:2006.10029, 2020.
