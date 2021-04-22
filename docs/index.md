@@ -83,10 +83,12 @@ linear classifier
 
 | Config | MLP          | cos          | Symmetric    | epochs | batch | CIFAR acc. |
 | ------ | ------------ | ------------ | ------------ | ------ | ----- | ---------- |
-| MoCo   |              | $\checkmark$ |              | 200    | 512   |            |
-| MoCo   |              | $\checkmark$ | $\checkmark$ | 200    | 512   |            |
+| MoCo   |              | $\checkmark$ |              | 200    | 512   | 0.767      |
+| MoCo   |              | $\checkmark$ | $\checkmark$ | 200    | 512   | 0.798      |
 | MoCo   | $\checkmark$ | $\checkmark$ |              |        |       |            |
 |        |              |              |              |        |       |            |
+
+<img src="/Users/julius/cvrl/200asy.png" style="zoom:59.5%;" /><img src="/Users/julius/cvrl/200sy.png" style="zoom:59.5%;" />
 
 #### Challenges
 
