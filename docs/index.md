@@ -88,7 +88,7 @@ linear classifier
 | MoCo   | $\checkmark$ | $\checkmark$ |              |        |       |            |
 |        |              |              |              |        |       |            |
 
-<img src="../200asy.png" style="zoom:59.5%;" /><img src="../200sy.png" style="zoom:59.5%;" />
+<img src="200asy.png" style="zoom:59.5%;" /><img src="200sy.png" style="zoom:59.5%;" />
 
 #### Challenges
 
