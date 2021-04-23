@@ -24,14 +24,14 @@ Pre-training and fine-tuning paradigm in computer vision can date back to $\text
 
 - $\text{CIFAR-10/CIFAR-100}$:
   - The $\text{CIFAR-10}$ dataset consists of 60000 32x32 colour images in 10 classes, with 6000 images per class. There are 50000 training images and 10000 test images.
-  - Batch $512\times3\times32\times32$
   - The $\text{CIFAR-100}$ dataset has 100 classes containing 600 images each. There are 500 training images and 100 testing images per class. The 100 classes in the $\text{CIFAR-100}$ are grouped into 20 superclasses. Each image comes with a "fine" label (the class to which it belongs) and a "coarse" label (the superclass to which it belongs).
+- Canine subset of $\text{ImageNet}$
+  - This dataset is used for the [dog breed identification challenge in the Kaggle Competition](https://www.kaggle.com/c/dog-breed-identification/)
+  - This dataset contains 120 breeds of dogs. Different from the images in the $\text{CIFAR-10}$ dataset, the canine images are higher and wider and their dimensions are inconsistent.
 - $\text{ImageNet ILSVRC 2012}$ (subset)
   - 1% $\rightarrow$ 12811 images
   - 10% $\rightarrow$ 128116 images
-  - Original $\rightarrow$ 1.28M images: This is the ImageNet training set that has ~1.28 million images in 1000 classes. This dataset is well-balanced in its class distribution, and its images generally contain iconic view of objects.
-- Canine subset of Imagenet (https://www.kaggle.com/c/dog-breed-identification/)
-  - 120 breeds of dogs
+  - Original $\rightarrow$ 1.28M images: This is the $\text{ImageNet}$ training set that has ~1.28 million images in 1000 classes. This dataset is well-balanced in its class distribution, and its images generally contain iconic view of objects.
 - $\text{PASCAL VOC}$ `trainval` and `test` set
   - A benchmark in visual object category recognition and detection consisting of a publicly available dataset of images and annotation
 
@@ -69,28 +69,43 @@ Authors further propose a three-step semi-supervised learning algorithm --- unsu
 
 #### Experiments
 
-MoCo
+We start by implementing $\text{MoCo v1}$ and evaluating its learned representations by training a supervised linear classifier upon frozen features. ImageNet is too large to handle, and we start by taking use of small and consistent(images are all $32\times32$) $\text{CIFAR-10}$.
 
-MLP / aug+ / cos
+We perform two random transformations to 50000 training images to get paired POSITIVE training data, and will be furthered encoded as $q$ and $k_+$. To build the big dictionary, we use `register_buffer` to add a 'queue' to the module. The current minibatch $k_+$ is enqueued while the oldest minibatch is removed. The loss function is then
+$$
+\mathcal L_q=-\log\frac{\exp(q\cdot k_+/\tau)}{\sum_{i=1}^K\exp(q\cdot k_i/\tau)}
+$$
 
-2048 --> 512 --> 128
+The query encoder parameter $\theta_q$ is optimized by $\text{SGD}$, while the key encoder parameter $\theta_k$ is updated by
+$$
+\theta_k\leftarrow m\theta_k+(1-m)\theta_q
+$$
+We can see this loss function is asymmetric, i.e., one minibatch is the query and the other minibatch is the key. Following the philosophy of $\text{SimCLR}$, we swap the two minibatches and compute a symmetric loss. It behaves like $2\times$ speed training.
 
-linear classifier
+Following the paper, we adopt $\text{ResNet-18}$ as the encoder architecture. We set feature dimension $128$, dictionary size $4096$, momentum $m=0.99$ and softmax temperature $\tau=0.1$. We set batch size $512$, weight decay $5e-4$ and initial learning rate $0.06$ scheduled by a cosine scheduler.
 
-- [x] `lr=30`
+Freezing the encoder $\theta_q$, we add a fully connected $(128, 10)$ layer to test its accuracy of linear classification for $\text{CIFAR-10}$. We set initial learning rate $30$ with a cosine schedule.
 
 #### Preliminary Results
 
-| Config | MLP          | cos          | Symmetric    | epochs | batch | CIFAR acc. |
-| ------ | ------------ | ------------ | ------------ | ------ | ----- | ---------- |
-| MoCo   |              | $\checkmark$ |              | 200    | 512   | 0.767      |
-| MoCo   |              | $\checkmark$ | $\checkmark$ | 200    | 512   | 0.798      |
-| MoCo   | $\checkmark$ | $\checkmark$ |              |        |       |            |
-|        |              |              |              |        |       |            |
+|  config   | MLP  |     cos      |  Symmetric   | epochs | batch | *CIFAR acc.* |
+| :-------: | :--: | :----------: | :----------: | :----: | :---: | :----------: |
+| MoCo v1.1 |      | $\checkmark$ |              |  200   |  512  |  **0.767**   |
+| MoCo v1.2 |      | $\checkmark$ | $\checkmark$ |  200   |  512  |  **0.798**   |
+|    ...    | ...  |     ...      |     ...      |  ...   |  ...  |     ...      |
 
-<img src="200asy.png" style="zoom:59.5%;" /><img src="200sy.png" style="zoom:59.5%;" />
+| ![](/Users/julius/cvrl/docs/200asy.png) | ![](/Users/julius/cvrl/docs/200sy.png) |
+| :-------------------------------------: | :------------------------------------: |
+|               Asymmetric                |               Symmetric                |
 
-#### Challenges
+We can see that using a symmetric loss, the linear classifier performs better given the same epoch number.
+
+#### Further works and Challenges
+
+From $\text{MoCo}$ to its version 2, several changes are adopted, such as MLP projection head, richer augmentation and cosine scheduler. We are going to evaluate these improvements. We're also going to compare $\text{MoCo}$ and $\text{SimCLR}$ on $\text{CIFAR-10}$ and other datasets. We'd like to expect comparable results on object detection task.
+
+1. $\text{ImageNet}$ is too big to handle -- 157G. We plan to use a subset, i.e., canine subset which contains 120 breeds of dogs. Since we're not using the same dataset as the paper, we're going to tune and find the best hyper parameters. We may need a larger base encoder, i.e., $\text{ResNet-50}$.
+2. $\text{SimCLR}$ typically use large $4k\sim8k$ batches, which may not be possible for us. For small dataset such as $\text{CIFAR-10}$, we might not need that large batch. We'll find out the influence of batch size.
 
 #### Goals and Deliverables
 
@@ -104,13 +119,11 @@ We will mainly focus on $\text{MoCo v1&v2}$ and $\text{SimCLR v1&v2}$ papers. $\
 
 4. Evaluate our implementation and expect comparable results
 
-   - $\text{kNN}$ monitor
-
-   - ImageNet linear classification
+   - $\text{CIFAR, ImageNet}$(subset) linear classification
      - Features are frozen and a supervised linear classifier is trained
      - Metric: 1-crop ($224\times224$), top-1 validation accuracy
-   - Transferring to $\text{VOC}$ objection detrction
-     - A Faster $\text{R-CNN}$ detector (C4-backbone) is fine-tuned end-to-end on the $\text{VOC 07+12}$ `trainval` set and evaluated on the $\text{VOC 07}$ `test` set
+   - Transferring to $\text{VOC}$ objection detection
+     - A $\text{Faster R-CNN}$ detector (C4-backbone) is fine-tuned end-to-end on the $\text{VOC 07+12}$ `trainval` set and evaluated on the $\text{VOC 07}$ `test` set
      - Metric: $\text{COCO}$ suite of metrics
 
 ## Project Plan
