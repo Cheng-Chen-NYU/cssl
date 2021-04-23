@@ -94,9 +94,9 @@ Freezing the encoder $\theta_q$, we add a fully connected $(128, 10)$ layer to t
 | MoCo v1.2 |      | $\checkmark$ | $\checkmark$ |  200   |  512  |  **0.798**   |
 |    ...    | ...  |     ...      |     ...      |  ...   |  ...  |     ...      |
 
-| ![](/Users/julius/cvrl/docs/200asy.png) | ![](/Users/julius/cvrl/docs/200sy.png) |
-| :-------------------------------------: | :------------------------------------: |
-|               Asymmetric                |               Symmetric                |
+| ![](200asy.png) | ![](200sy.png) |
+| :-------------: | :------------: |
+|   Asymmetric    |   Symmetric    |
 
 We can see that using a symmetric loss, the linear classifier performs better given the same epoch number.
 
