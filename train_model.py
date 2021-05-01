@@ -10,75 +10,102 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 
 from tools.cvrlDataset import CIFAR10Pair, train_transform, test_transform
-from tools.cvrlTrainer import cvrlTrainer
+from tools.cvrlTrainer import mocoTrainer, simclrTrainer
 from model.model import MoCov1, MoCov2, SimCLRv1, SimCLRv2
 
 parser = argparse.ArgumentParser(description='Contrastive Visual Representation Learning')
-parser.add_argument("-name", "--name", type=str, help="name of the experiment", default="train_log")
-parser.add_argument("-bs", "--batch_size", type=int, help="batch size", default=512)
-parser.add_argument("-t", "--temperature", default=0.5, type=float, help='Temperature used in softmax')
-parser.add_argument("-lr", "--learning_rate", type=float, help="learning rate", default=1e-3)
-parser.add_argument("-m", "--momentum", type=float, help="momentum", default=0.9)
-parser.add_argument("-wd", "--weight_decay", type=float, help="weight decay", default=1e-6)
-parser.add_argument("-step_size", type=float, help="decay lr every step epochs", default=10)
-parser.add_argument("-gamma", type=float, help="lr decay factor", default=0.5)
-parser.add_argument("-arch", type=str, help="backbone cnn arch name", default="resnet18")
-parser.add_argument("-model", type=str, help="model name", default="mocov1")
 
-# KNN
-parser.add_argument('-k', default=200, type=int, help='Top k most similar images used to predict the label')
+# model
+parser.add_argument('--model_name', type=str, help='model name', default='mocov1')
+parser.add_argument('--epochs', type=int, help='number of epochs', default=200)
 
-# data
-parser.add_argument("-data_path", type=str, default="data/")
+# data loader
+parser.add_argument('--batch_size', type=int, help='batch size', default=512)
 
-#
-parser.add_argument("-results_dir", type=str, help="path to cache (default: none)", default='')
-parser.add_argument("-resume", type=str, default='')
+# optimizer
+parser.add_argument('--learning_rate', type=float, help='learning rate', default=1e-3)
+parser.add_argument('--momentum', type=float, help='optimizer momentum', default=0.9)
+parser.add_argument('--weight_decay', type=float, help='weight decay factor', default=1e-6)
+
+# scheduler
+parser.add_argument('--step_size', type=float, help='decay lr every step epochs', default=10)
+parser.add_argument('--gamma', type=float, help='lr decay factor', default=0.5)
+parser.add_argument('--cos', action='store_true', help='use cosine lr schedule')
+
+# backbone
+parser.add_argument('--arch', type=str, help='backbone cnn architecture', default='resnet18')
+
+# softmax
+parser.add_argument('--temperature', default=0.5, type=float, help='temperature used in softmax')
+
+# moco
+parser.add_argument('--moco-dim', default=128, type=int, help='feature dimension')
+parser.add_argument('--moco-k', default=4096, type=int, help='queue size; number of negative keys')
+parser.add_argument('--moco-m', default=0.99, type=float, help='moco momentum of updating key encoder')
+
+# knn
+parser.add_argument('--k', default=200, type=int, help='top k most similar images used to predict the label')
+
+# path
+parser.add_argument('--dataset_dir', type=str, default="data/")
+parser.add_argument('--log_dir', type=str, help="dir to log", default='train_log/')
+parser.add_argument('--results_dir', type=str, help='dir to cache (default: none)', default='')
+parser.add_argument('--resume_path', type=str, help='path to latest checkpoint (default: none)', default='')
 
 if __name__ == '__main__':
-	torch.cuda.set_device(2)
+	# torch.cuda.set_device(2)
 
 	args = parser.parse_args()
 
 	if args.results_dir == '':
 		args.results_dir = '/cache-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S-{}".format(args.arch))
 
-	if not os.path.exists(args.name):
-		os.mkdir(args.name)
+	if not os.path.exists(args.log_dir):
+		os.mkdir(args.log_dir)
 
-	model_name = args.model
+	train_data = CIFAR10Pair(root=args.dataset_dir, train=True, transform=train_transform, download=True)
+	train_iter = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True, drop_last=True)
+
+	memory_data = CIFAR10(root=args.dataset_dir, train=True, transform=test_transform, download=True)
+	memory_iter = DataLoader(memory_data, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
+
+	test_data = CIFAR10(root=args.dataset_dir, train=False, transform=test_transform, download=True)
+	test_iter = DataLoader(test_data, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
+
+	train_log = args.log_dir + args.results_dir
+
+	model_name = args.model_name
 	if model_name == 'mocov1':
-		model = MoCov1()
+	
+		model = MoCov1(feature_dim=args.moco_dim, K=args.moco_k, m=args.moco_m, T=args.temperature, arch=args.arch)
+		optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay, momentum=args.momentum)
+		trainer = mocoTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k, args.learning_rate, args.cos)
+	
 	elif model_name == 'mocov2':
-		model = MoCov2()
-	elif model_name == 'simclrv1': 
+	
+		model = MoCov2(arch=args.arch)
+		pass
+	
+	elif model_name == 'simclrv1':
+	
 		model = SimCLRv1(arch=args.arch)
+		optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+		trainer = simclrTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k)
+	
 	elif model_name == 'simclrv2':
 		model = SimCLRv2(arch=args.arch)
+		pass
 	else:
 		assert(False)
 
-	train_data = CIFAR10Pair(root=args.data_path, train=True, transform=train_transform, download=True)
-	train_iter = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True, drop_last=True)
 
-	memory_data = CIFAR10(root=args.data_path, train=True, transform=test_transform, download=True)
-	memory_iter = DataLoader(memory_data, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
+	if not os.path.exists(train_log):
+		os.mkdir(train_log)
 
-	test_data = CIFAR10(root=args.data_path, train=False, transform=test_transform, download=True)
-	test_iter = DataLoader(test_data, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
-
-	optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-
-	log_dir = args.name + args.results_dir
-	if not os.path.exists(log_dir):
-		os.mkdir(log_dir)
-
-	config_f = open(os.path.join(log_dir, 'config.json'), 'w')
+	config_f = open(os.path.join(train_log, 'config.json'), 'w')
 	json.dump(vars(args), config_f)
 	config_f.close()
 
 	epoch_start = 1
-	c = len(memory_data.classes)
-	trainer = cvrlTrainer(log_dir, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k)
-	trainer.train(args.resume, c, epoch_start, 200)
+	trainer.train(args.resume_path, epoch_start, args.epochs)
 
