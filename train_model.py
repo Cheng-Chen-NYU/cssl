@@ -36,6 +36,8 @@ parser.add_argument("-results_dir", type=str, help="path to cache (default: none
 parser.add_argument("-resume", type=str, default='')
 
 if __name__ == '__main__':
+	torch.cuda.set_device(2)
+
 	args = parser.parse_args()
 
 	if args.results_dir == '':

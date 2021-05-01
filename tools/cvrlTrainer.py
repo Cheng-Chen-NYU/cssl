@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from tqdm import tqdm
+import pandas as pd
 
 class cvrlTrainer():
 	def __init__(self, log_dir, model, train_loader, memory_loader, test_loader, optimizer, temperature, k):
@@ -106,8 +107,10 @@ class cvrlTrainer():
 					test_bar.set_description('Test Epoch: [{}/{}] Acc@1:{:.2f}% Acc@5:{:.2f}%'
 												.format(epoch, epochs, total_top1 / total_num * 100, total_top5 / total_num * 100))
 
-			results['test_acc@1'].append(total_top1 / total_num * 100)
-			results['test_acc@5'].append(total_top5 / total_num * 100)
+			test_acc_1 = total_top1 / total_num * 100
+			test_acc_5 = total_top5 / total_num * 100
+			results['test_acc@1'].append(test_acc_1)
+			results['test_acc@5'].append(test_acc_5)
 
 			data_frame = pd.DataFrame(data=results, index=range(epoch_start, epoch + 1))
 			data_frame.to_csv(self.log_dir + '/log.csv', index_label='epoch')
