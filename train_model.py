@@ -19,7 +19,7 @@ parser.add_argument("-bs", "--batch_size", type=int, help="batch size", default=
 parser.add_argument("-t", "--temperature", default=0.5, type=float, help='Temperature used in softmax')
 parser.add_argument("-lr", "--learning_rate", type=float, help="learning rate", default=1e-3)
 parser.add_argument("-m", "--momentum", type=float, help="momentum", default=0.9)
-parser.add_argument("-wd", type=float, help="weight decay", default=1e-6)
+parser.add_argument("-wd", "--weight_decay", type=float, help="weight decay", default=1e-6)
 parser.add_argument("-step_size", type=float, help="decay lr every step epochs", default=10)
 parser.add_argument("-gamma", type=float, help="lr decay factor", default=0.5)
 parser.add_argument("-arch", type=str, help="backbone cnn arch name", default="resnet18")
@@ -44,7 +44,7 @@ if __name__ == '__main__':
 	if not os.path.exists(args.name):
 		os.mkdir(args.name)
 
-	model_name = args.arch
+	model_name = args.model
 	if model_name == 'mocov1':
 		model = MoCov1()
 	elif model_name == 'mocov2':
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 	test_data = CIFAR10(root=args.data_path, train=False, transform=test_transform, download=True)
 	test_iter = DataLoader(test_data, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
-	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
+	optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
 	log_dir = args.name + args.results_dir
 	if not os.path.exists(log_dir):
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 	json.dump(vars(args), config_f)
 	config_f.close()
 
-	trainer = cvrlTrainer(log_dir, model, train_iter, memory_iter, test_iter, optimizer, args.t, args.k)
+	trainer = cvrlTrainer(log_dir, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k)
 	trainer.train(1, 200)
 
 
