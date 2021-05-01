@@ -18,6 +18,8 @@ class cvrlTrainer():
 		results = {'train_loss': [], 'test_acc@1': [], 'test_acc@5': []}
 		model = nn.DataParallel(self.model).cuda()
 
+		batch_size = self.train_loader.batch_size
+
 		best_acc = 0.0
 		for epoch in range(epoch_start, epochs + 1):
 			
@@ -45,8 +47,8 @@ class cvrlTrainer():
 				loss.backward()
 				optimizer.step()
 
-				total_num += train_loader.batch_size
-				total_loss += loss.item() * train_loader.batch_size
+				total_num += batch_size
+				total_loss += loss.item() * batch_size
 				train_bar.set_description('Train Epoch: [{}/{}] Loss: {:.4f}'.format(epoch, epochs, total_loss / total_num))
 
 			results['train_loss'].append(total_loss / total_num)
