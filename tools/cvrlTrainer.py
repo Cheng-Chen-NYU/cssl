@@ -31,13 +31,13 @@ class cvrlTrainer():
 				# [2*B, D]
 				out = torch.cat([out_1, out_2], dim=0)
 				# [2*B, 2*B]
-				sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
+				sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / self.temperature)
 				mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
 				# [2*B, 2*B-1]
 				sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
 
 				# compute loss
-				pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temperature)
+				pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / self.temperature)
 				# [2*B]
 				pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
 				loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
@@ -74,13 +74,13 @@ class cvrlTrainer():
 					# compute cos similarity between each feature vector and feature bank ---> [B, N]
 					sim_matrix = torch.mm(feature, feature_bank)
 					# [B, K]
-					sim_weight, sim_indices = sim_matrix.topk(k=k, dim=-1)
+					sim_weight, sim_indices = sim_matrix.topk(k=self.k, dim=-1)
 					# [B, K]
 					sim_labels = torch.gather(feature_labels.expand(data.size(0), -1), dim=-1, index=sim_indices)
-					sim_weight = (sim_weight / temperature).exp()
+					sim_weight = (sim_weight / self.temperature).exp()
 
 					# counts for each class
-					one_hot_label = torch.zeros(data.size(0) * k, c, device=sim_labels.device)
+					one_hot_label = torch.zeros(data.size(0) * self.k, c, device=sim_labels.device)
 					# [B*K, C]
 					one_hot_label = one_hot_label.scatter(dim=-1, index=sim_labels.view(-1, 1), value=1.0)
 					# weighted score ---> [B, C]
