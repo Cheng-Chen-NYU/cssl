@@ -1,1 +1,0 @@
-{"name": "train_mocov1_on_cifar10", "batch_size": 512, "lr": 0.001, "momentum": 0.9, "weight_decay": 0.0001, "step_size": 10, "gamma": 0.5, "arch": "resnet", "data_path": "data/", "results_dir": "/cache-2021-04-27-15-45-42-mocov1", "resume": ""}
