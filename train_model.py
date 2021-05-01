@@ -75,7 +75,8 @@ if __name__ == '__main__':
 	json.dump(vars(args), config_f)
 	config_f.close()
 
+	epoch_start = 1
+	c = len(memory_data.classes)
 	trainer = cvrlTrainer(log_dir, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k)
-	trainer.train(1, 200)
-
+	trainer.train(args.resume, c, epoch_start, 200)
 

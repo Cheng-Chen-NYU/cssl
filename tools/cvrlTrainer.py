@@ -15,13 +15,22 @@ class cvrlTrainer():
 		self.temperature = temperature
 		self.k = k
 
-	def train(self, epoch_start, epochs):
+	def train(self, resume, c, epoch_start, epochs):
 		results = {'train_loss': [], 'test_acc@1': [], 'test_acc@5': []}
-		model = nn.DataParallel(self.model).cuda()
+		model = nn.DataParallel(self.model, device_ids=[2, 3]).cuda()
 
 		batch_size = self.train_loader.batch_size
 
 		best_acc = 0.0
+
+		if resume is not '':
+			checkpoint = torch.load(resume)
+			model.load_state_dict(checkpoint['state_dict'])
+			self.optimizer.load_state_dict(checkpoint['optimizer'])
+			self.scheduler.load_state_dict(checkpoint['scheduler'])
+			epoch_start = checkpoint['epoch'] + 1
+			print('Loaded from: {}'.format(resume))
+
 		for epoch in range(epoch_start, epochs + 1):
 			
 			model.train()
@@ -57,22 +66,23 @@ class cvrlTrainer():
 
 			model.eval()
 
+			total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
 			with torch.no_grad():
 				# generate feature bank
-				for data, _, target in tqdm(self.memory_loader, desc='Feature extracting'):
+				for data, target in tqdm(self.memory_loader, desc='Feature extracting'):
 					feature, out = model(data.cuda(non_blocking=True))
 					feature_bank.append(feature)
 				
 				# [D, N]	
 				feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
 				# [N]
-				feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
+				feature_labels = torch.tensor(self.memory_loader.dataset.targets, device=feature_bank.device)
 				
 				# loop test data to predict the label by weighted knn search
 				test_bar = tqdm(self.test_loader)
-				for data, _, target in test_bar:
+				for data, target in test_bar:
 					data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
-					feature, out = net(data)
+					feature, out = model(data)
 
 					total_num += data.size(0)
 					# compute cos similarity between each feature vector and feature bank ---> [B, N]
