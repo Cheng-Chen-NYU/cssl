@@ -45,8 +45,8 @@ class cvrlTrainer():
 				loss.backward()
 				optimizer.step()
 
-				total_num += batch_size
-				total_loss += loss.item() * batch_size
+				total_num += train_loader.batch_size
+				total_loss += loss.item() * train_loader.batch_size
 				train_bar.set_description('Train Epoch: [{}/{}] Loss: {:.4f}'.format(epoch, epochs, total_loss / total_num))
 
 			results['train_loss'].append(total_loss / total_num)
