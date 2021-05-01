@@ -9,6 +9,7 @@ class cvrlTrainer():
 		self.log_dir = log_dir
 		self.model = model
 		self.train_loader = train_loader
+		self.memory_loader = memory_loader
 		self.test_loader = test_loader
 		self.optimizer = optimizer
 		self.temperature = temperature
@@ -43,9 +44,10 @@ class cvrlTrainer():
 				# [2*B]
 				pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
 				loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
-				optimizer.zero_grad()
+				
+				self.optimizer.zero_grad()
 				loss.backward()
-				optimizer.step()
+				self.optimizer.step()
 
 				total_num += batch_size
 				total_loss += loss.item() * batch_size
@@ -57,7 +59,7 @@ class cvrlTrainer():
 
 			with torch.no_grad():
 				# generate feature bank
-				for data, _, target in tqdm(memory_loader, desc='Feature extracting'):
+				for data, _, target in tqdm(self.memory_loader, desc='Feature extracting'):
 					feature, out = model(data.cuda(non_blocking=True))
 					feature_bank.append(feature)
 				
@@ -67,7 +69,7 @@ class cvrlTrainer():
 				feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
 				
 				# loop test data to predict the label by weighted knn search
-				test_bar = tqdm(test_loader)
+				test_bar = tqdm(self.test_loader)
 				for data, _, target in test_bar:
 					data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
 					feature, out = net(data)
@@ -96,8 +98,6 @@ class cvrlTrainer():
 
 			results['test_acc@1'].append(total_top1 / total_num * 100)
 			results['test_acc@5'].append(total_top5 / total_num * 100)
-
-			self.scheduler.step()
 
 			data_frame = pd.DataFrame(data=results, index=range(epoch_start, epoch + 1))
 			data_frame.to_csv(self.log_dir + '/log.csv', index_label='epoch')
