@@ -1,6 +1,7 @@
 __pycache__/
 data/
 train_log/
+.ipynb_checkpoints/
 
 *.pyc
 *.pth

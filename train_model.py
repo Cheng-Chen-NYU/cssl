@@ -58,7 +58,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	if args.results_dir == '':
-		args.results_dir = '/cache-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S-{}".format(args.arch))
+		args.results_dir = '/cache-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S-{}".format(args.model_name))
 
 	if not os.path.exists(args.log_dir):
 		os.mkdir(args.log_dir)
