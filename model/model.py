@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torchvision.models import resnet
 
-from tqdm import tqdm
+import torch.nn.functional as F
 
 class MoCov1(nn.Module):
 	def __init__(self, feature_dim=512, K=4096, m=0.99, T=0.1, arch='resnet18', bn_splits=8):

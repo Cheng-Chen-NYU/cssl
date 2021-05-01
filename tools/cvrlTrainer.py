@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from tqdm import tqdm
+
 class cvrlTrainer():
 	def __init__(self, log_dir, model, train_loader, memory_loader, test_loader, optimizer, temperature, k):
 		self.log_dir = log_dir
