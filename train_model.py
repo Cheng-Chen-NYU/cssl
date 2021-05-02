@@ -85,7 +85,8 @@ if __name__ == '__main__':
 	elif model_name == 'mocov2':
 	
 		model = MoCov2(arch=args.arch)
-		pass
+		optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay, momentum=args.momentum)
+		trainer = mocoTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k, args.learning_rate, args.cos)
 	
 	elif model_name == 'simclrv1':
 	
@@ -95,7 +96,9 @@ if __name__ == '__main__':
 	
 	elif model_name == 'simclrv2':
 		model = SimCLRv2(arch=args.arch)
-		pass
+		optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+		trainer = simclrTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k)
+	
 	else:
 		assert(False)
 

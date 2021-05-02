@@ -121,7 +121,6 @@ class simclrTrainer():
 				best_acc = test_acc_1
 				torch.save({'epoch': epoch, 'state_dict': model.state_dict(), 'optimizer': self.optimizer.state_dict()}, self.log_dir + '/model_last.pth')
 
-
 class mocoTrainer():
 	def __init__(self, log_dir, model, train_loader, memory_loader, test_loader, optimizer, temperature, k, lr, cos):
 		self.log_dir = log_dir
@@ -159,7 +158,7 @@ class mocoTrainer():
 			print('Loaded from: {}'.format(resume))
 
 		for epoch in range(epoch_start, epochs + 1):
-			
+
 			model.train()
 			self.adjust_learning_rate(self.optimizer, epoch, epochs, self.lr, self.cos)
 
@@ -186,12 +185,12 @@ class mocoTrainer():
 				for data, target in tqdm(self.memory_loader, desc='Feature extracting'):
 					feature = model.encoder_q(data.cuda(non_blocking=True))
 					feature_bank.append(feature)
-				
-				# [D, N]	
+
+				# [D, N]
 				feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
 				# [N]
 				feature_labels = torch.tensor(self.memory_loader.dataset.targets, device=feature_bank.device)
-				
+
 				# loop test data to predict the label by weighted knn search
 				test_bar = tqdm(self.test_loader)
 				for data, target in test_bar:
@@ -227,7 +226,7 @@ class mocoTrainer():
 
 			data_frame = pd.DataFrame(data=results, index=range(epoch_start, epoch + 1))
 			data_frame.to_csv(self.log_dir + '/log.csv', index_label='epoch')
-			
+
 			if test_acc_1 > best_acc:
 				best_acc = test_acc_1
 				torch.save({'epoch': epoch, 'state_dict': model.state_dict(), 'optimizer': self.optimizer.state_dict()}, self.log_dir + '/model_last.pth')

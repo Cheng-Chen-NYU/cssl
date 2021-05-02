@@ -17,15 +17,30 @@ class Net(nn.Module):
         super(Net, self).__init__()
 
         if model_name == 'mocov1':
+            print(model_name)
             # encoder
             self.f = MoCov1().encoder_q.f
             # classifier
             self.fc = nn.Linear(512, num_class, bias=True)
+        elif model_name == 'mocov2':
+            print(model_name)
+            # encoder
+            self.f = MoCov2().encoder_q.f
+            # classifier
+            self.fc = nn.Linear(512, num_class, bias=True)
         elif model_name == 'simclrv1':
+            print(model_name)
             # encoder
             self.f = SimCLRv1().f
             # classifier
             self.fc = nn.Linear(2048, num_class, bias=True)
+        elif model_name == 'simclrv2':
+            print(model_name)
+            # encoder
+            base = SimCLRv2()
+            self.f = nn.Sequential(base.f, base.g1)
+            # classifier
+            self.fc = nn.Linear(1024, num_class, bias=True)
         else:
             assert(False)
 
@@ -74,6 +89,10 @@ if __name__ == '__main__':
     parser.add_argument('--model_name', type=str, help='model name', default='mocov1')
     parser.add_argument('--model_path', type=str, default='', help='The pretrained model path')
     parser.add_argument('--batch_size', type=int, default=512, help='Number of images in each mini-batch')
+    parser.add_argument('--learning_rate', type=float, help='learning rate', default=1e-3)
+    parser.add_argument('--weight_decay', type=float, help='weight decay factor', default=1e-6)
+    parser.add_argument('--step_size', type=float, help='decay lr every step epochs', default=10)
+    parser.add_argument('--gamma', type=float, help='lr decay factor', default=0.5)
     parser.add_argument('--epochs', type=int, default=100, help='Number of sweeps over the dataset to train')
 
     args = parser.parse_args()
@@ -92,14 +111,17 @@ if __name__ == '__main__':
     flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
     flops, params = clever_format([flops, params])
     print('# Model Params: {} FLOPs: {}'.format(params, flops))
-    optimizer = optim.Adam(model.fc.parameters(), lr=1e-3, weight_decay=1e-6)
+    
+    optimizer = optim.Adam(model.fc.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
+    
     loss_criterion = nn.CrossEntropyLoss()
     results = {'train_loss': [], 'train_acc@1': [], 'train_acc@5': [], 'test_loss': [], 'test_acc@1': [], 'test_acc@5': []}
 
     best_acc = 0.0
 
     for epoch in range(1, epochs + 1):
-        train_loss, train_acc_1, train_acc_5 = train_val(model, train_loader, optimizer)
+        train_loss, train_acc_1, train_acc_5 = train_val(model, train_loader, optimizer, scheduler)
         results['train_loss'].append(train_loss)
         results['train_acc@1'].append(train_acc_1)
         results['train_acc@5'].append(train_acc_5)
