@@ -39,6 +39,7 @@ class simclrTrainer():
 
 			total_loss, total_num, train_bar = 0.0, 0, tqdm(self.train_loader)
 			for pos_1, pos_2, target in train_bar:
+				
 				pos_1, pos_2 = pos_1.cuda(non_blocking=True), pos_2.cuda(non_blocking=True)
 				feature_1, out_1 = model(pos_1)
 				feature_2, out_2 = model(pos_2)
@@ -143,7 +144,7 @@ class mocoTrainer():
 
 	def train(self, resume, epoch_start, epochs):
 		results = {'train_loss': [], 'test_acc@1': [], 'test_acc@5': []}
-		model = nn.DataParallel(self.model, device_ids=[2, 3]).cuda()
+		model = self.model.cuda()
 
 		batch_size = self.train_loader.batch_size
 		c = len(self.memory_loader.dataset.classes)
@@ -166,8 +167,7 @@ class mocoTrainer():
 			for im_1, im_2, _ in train_bar:
 				im_1, im_2 = im_1.cuda(non_blocking=True), im_2.cuda(non_blocking=True)
 
-				loss = model(im_1, im_2)
-				loss = loss.mean()
+				loss = model(im_1, im_2).mean()
 
 				self.optimizer.zero_grad()
 				loss.backward()
@@ -184,7 +184,7 @@ class mocoTrainer():
 			with torch.no_grad():
 				# generate feature bank
 				for data, target in tqdm(self.memory_loader, desc='Feature extracting'):
-					feature = model(data.cuda(non_blocking=True))
+					feature = model.encoder_q(data.cuda(non_blocking=True))
 					feature_bank.append(feature)
 				
 				# [D, N]	
@@ -196,7 +196,7 @@ class mocoTrainer():
 				test_bar = tqdm(self.test_loader)
 				for data, target in test_bar:
 					data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
-					feature = model(data)
+					feature = model.encoder_q(data)
 
 					total_num += data.size(0)
 					# compute cos similarity between each feature vector and feature bank ---> [B, N]

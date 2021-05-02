@@ -28,7 +28,7 @@ class SplitBatchNorm(nn.BatchNorm2d):
 				self.weight, self.bias, False, self.momentum, self.eps)
 
 class ModelBase(nn.Module):
-	def __init__(self, feature_dim=128, arch=None, bn_splits=16):
+	def __init__(self, feature_dim=128, arch=None, bn_splits=8):
 		super(ModelBase, self).__init__()
 
 		# use split batchnorm
