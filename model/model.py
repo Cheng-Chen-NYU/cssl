@@ -28,36 +28,27 @@ class SplitBatchNorm(nn.BatchNorm2d):
 				self.weight, self.bias, False, self.momentum, self.eps)
 
 class ModelBase(nn.Module):
-	"""
-	Common CIFAR ResNet recipe.
-	Comparing with ImageNet ResNet recipe, it:
-	(i) replaces conv1 with kernel=3, str=1
-	(ii) removes pool1
-	"""
 	def __init__(self, feature_dim=128, arch=None, bn_splits=16):
 		super(ModelBase, self).__init__()
 
 		# use split batchnorm
 		norm_layer = partial(SplitBatchNorm, num_splits=bn_splits) if bn_splits > 1 else nn.BatchNorm2d
-		resnet_arch = getattr(resnet, arch)
-		net = resnet_arch(num_classes=feature_dim, norm_layer=norm_layer)
 
-		self.net = []
-		for name, module in net.named_children():
+		self.f = []
+		for name, module in getattr(resnet, arch)(num_classes=feature_dim, norm_layer=norm_layer).named_children():
 			if name == 'conv1':
 				module = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-			if isinstance(module, nn.MaxPool2d):
-				continue
-			if isinstance(module, nn.Linear):
-				self.net.append(nn.Flatten(1))
-		self.net.append(module)
-
-		self.net = nn.Sequential(*self.net)
+			if not isinstance(module, nn.Linear) and not isinstance(module, nn.MaxPool2d):
+				self.f.append(module)
+		
+		# encoder
+		self.f = nn.Sequential(*self.f)
 
 	def forward(self, x):
-		x = self.net(x)
-		# note: not normalized here
-		return x
+		x = self.f(x)
+		feature = torch.flatten(x, start_dim=1)
+		# not normalized
+		return feature
 
 class MoCov1(nn.Module):
 	def __init__(self, feature_dim=128, K=4096, m=0.99, T=0.1, arch='resnet18', bn_splits=8):
@@ -170,13 +161,7 @@ class MoCov1(nn.Module):
 			self._momentum_update_key_encoder()
 
 		# compute loss
-		if self.symmetric:  # asymmetric loss
-			loss_12, q1, k2 = self.contrastive_loss(im1, im2)
-			loss_21, q2, k1 = self.contrastive_loss(im2, im1)
-			loss = loss_12 + loss_21
-			k = torch.cat([k1, k2], dim=0)
-		else:  # asymmetric loss
-			loss, q, k = self.contrastive_loss(im1, im2)
+		loss, q, k = self.contrastive_loss(im1, im2)
 
 		self._dequeue_and_enqueue(k)
 
@@ -221,4 +206,11 @@ class SimCLRv2(nn.Module):
 
 	def forward(self, x):
 		pass
+
+if __name__ == '__main__':
+	a = ModelBase(128, 'resnet18', 16)
+	X = torch.randn(64, 3, 32, 32) # N * C * H * W
+	for layer in a.f:
+		X = layer(X)
+		print(layer.__class__.__name__,'Output shape:\t', X.shape)
 
