@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from tqdm import tqdm
 import pandas as pd
+import math
 
 class simclrTrainer():
 	def __init__(self, log_dir, model, train_loader, memory_loader, test_loader, optimizer, temperature, k):
@@ -166,6 +167,7 @@ class mocoTrainer():
 				im_1, im_2 = im_1.cuda(non_blocking=True), im_2.cuda(non_blocking=True)
 
 				loss = model(im_1, im_2)
+				loss = loss.mean()
 
 				self.optimizer.zero_grad()
 				loss.backward()
@@ -177,13 +179,12 @@ class mocoTrainer():
 
 			results['train_loss'].append(total_loss / total_num)
 
-
 			model.eval()
 			total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
 			with torch.no_grad():
 				# generate feature bank
 				for data, target in tqdm(self.memory_loader, desc='Feature extracting'):
-					feature, out = model(data.cuda(non_blocking=True))
+					feature = model(data.cuda(non_blocking=True))
 					feature_bank.append(feature)
 				
 				# [D, N]	
@@ -195,7 +196,7 @@ class mocoTrainer():
 				test_bar = tqdm(self.test_loader)
 				for data, target in test_bar:
 					data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
-					feature, out = model(data)
+					feature = model(data)
 
 					total_num += data.size(0)
 					# compute cos similarity between each feature vector and feature bank ---> [B, N]

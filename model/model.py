@@ -43,12 +43,14 @@ class ModelBase(nn.Module):
 		
 		# encoder
 		self.f = nn.Sequential(*self.f)
+		# fc projector
+		self.g = nn.Linear(512, feature_dim, bias=True)
 
 	def forward(self, x):
 		x = self.f(x)
 		feature = torch.flatten(x, start_dim=1)
-		# not normalized
-		return feature
+		out = self.g(feature)
+		return F.normalize(out, dim=-1)
 
 class MoCov1(nn.Module):
 	def __init__(self, feature_dim=128, K=4096, m=0.99, T=0.1, arch='resnet18', bn_splits=8):
@@ -114,7 +116,6 @@ class MoCov1(nn.Module):
 	def contrastive_loss(self, im_q, im_k):
 		# compute query features
 		q = self.encoder_q(im_q)  # queries: NxC
-		q = nn.functional.normalize(q, dim=1)  # already normalized
 
 		# compute key features
 		with torch.no_grad():  # no gradient to keys
@@ -122,7 +123,6 @@ class MoCov1(nn.Module):
 			im_k_, idx_unshuffle = self._batch_shuffle_single_gpu(im_k)
 
 			k = self.encoder_k(im_k_)  # keys: NxC
-			k = nn.functional.normalize(k, dim=1)  # already normalized
 
 			# undo shuffle
 			k = self._batch_unshuffle_single_gpu(k, idx_unshuffle)
@@ -208,9 +208,11 @@ class SimCLRv2(nn.Module):
 		pass
 
 if __name__ == '__main__':
-	a = ModelBase(128, 'resnet18', 16)
-	X = torch.randn(64, 3, 32, 32) # N * C * H * W
-	for layer in a.f:
-		X = layer(X)
-		print(layer.__class__.__name__,'Output shape:\t', X.shape)
+	# a = ModelBase(feature_dim=128, arch='resnet18', bn_splits=8)
+	# X = torch.randn(64, 3, 32, 32) # N * C * H * W
+	# for layer in a.net:
+	# 	X = layer(X)
+	# 	print(layer.__class__.__name__,'Output shape:\t', X.shape)
+	# print(a(X).shape)
+	pass
 
