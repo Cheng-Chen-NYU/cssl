@@ -29,7 +29,7 @@ class SplitBatchNorm(nn.BatchNorm2d):
 
 class ModelBasev1(nn.Module):
 	def __init__(self, feature_dim=128, arch=None, bn_splits=8):
-		super(ModelBase, self).__init__()
+		super(ModelBasev1, self).__init__()
 
 		# use split batchnorm
 		norm_layer = partial(SplitBatchNorm, num_splits=bn_splits) if bn_splits > 1 else nn.BatchNorm2d
@@ -169,7 +169,7 @@ class MoCov1(nn.Module):
 
 class ModelBasev2(nn.Module):
 	def __init__(self, feature_dim=128, arch=None, bn_splits=8):
-		super(ModelBase, self).__init__()
+		super(ModelBasev2, self).__init__()
 
 		# use split batchnorm
 		norm_layer = partial(SplitBatchNorm, num_splits=bn_splits) if bn_splits > 1 else nn.BatchNorm2d
@@ -199,7 +199,7 @@ class ModelBasev2(nn.Module):
 
 class MoCov2(nn.Module):
 	def __init__(self, feature_dim=128, K=4096, m=0.99, T=0.1, arch='resnet18', bn_splits=8):
-		super(MoCov1, self).__init__()
+		super(MoCov2, self).__init__()
 
 		self.K = K
 		self.m = m
@@ -343,7 +343,7 @@ class SimCLRv1(nn.Module):
 
 class SimCLRv2(nn.Module):
 	def __init__(self, feature_dim=128, arch='resnet50'):
-		super(SimCLRv1, self).__init__()
+		super(SimCLRv2, self).__init__()
 
 		self.f = []
 		for name, module in getattr(resnet, arch)().named_children():

@@ -19,9 +19,9 @@ class Net(nn.Module):
         if model_name == 'mocov1':
             print(model_name)
             # encoder
-            self.f = MoCov1().encoder_q.f
+            self.f = MoCov1().encoder_q
             # classifier
-            self.fc = nn.Linear(512, num_class, bias=True)
+            self.fc = nn.Linear(128, num_class, bias=True)
         elif model_name == 'mocov2':
             print(model_name)
             # encoder
@@ -53,7 +53,7 @@ class Net(nn.Module):
         return out
 
 # train or test for one epoch
-def train_val(net, data_loader, train_optimizer):
+def train_val(net, data_loader, train_optimizer, train_scheduler):
     is_train = train_optimizer is not None
     net.train() if is_train else net.eval()
 
@@ -68,6 +68,7 @@ def train_val(net, data_loader, train_optimizer):
                 train_optimizer.zero_grad()
                 loss.backward()
                 train_optimizer.step()
+                train_scheduler.step()
 
             total_num += data.size(0)
             total_loss += loss.item() * data.size(0)
@@ -125,7 +126,7 @@ if __name__ == '__main__':
         results['train_loss'].append(train_loss)
         results['train_acc@1'].append(train_acc_1)
         results['train_acc@5'].append(train_acc_5)
-        test_loss, test_acc_1, test_acc_5 = train_val(model, test_loader, None)
+        test_loss, test_acc_1, test_acc_5 = train_val(model, test_loader, None, None)
         results['test_loss'].append(test_loss)
         results['test_acc@1'].append(test_acc_1)
         results['test_acc@5'].append(test_acc_5)
@@ -135,3 +136,5 @@ if __name__ == '__main__':
         if test_acc_1 > best_acc:
             best_acc = test_acc_1
             torch.save(model.state_dict(), 'train_log/linear_model.pth')
+
+

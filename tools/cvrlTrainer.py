@@ -166,7 +166,7 @@ class mocoTrainer():
 			for im_1, im_2, _ in train_bar:
 				im_1, im_2 = im_1.cuda(non_blocking=True), im_2.cuda(non_blocking=True)
 
-				loss = model(im_1, im_2).mean()
+				loss = model(im_1, im_2)
 
 				self.optimizer.zero_grad()
 				loss.backward()
