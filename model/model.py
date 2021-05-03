@@ -373,11 +373,5 @@ class SimCLRv2(nn.Module):
 		return F.normalize(feature, dim=-1), F.normalize(out, dim=-1)
 
 if __name__ == '__main__':
-	# a = ModelBase(feature_dim=128, arch='resnet18', bn_splits=8)
-	# X = torch.randn(64, 3, 32, 32) # N * C * H * W
-	# for layer in a.net:
-	# 	X = layer(X)
-	# 	print(layer.__class__.__name__,'Output shape:\t', X.shape)
-	# print(a(X).shape)
 	pass
 

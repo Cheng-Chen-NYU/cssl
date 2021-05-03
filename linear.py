@@ -13,7 +13,7 @@ from tools.cvrlDataset import train_transform, test_transform
 from model.model import MoCov1, MoCov2, SimCLRv1, SimCLRv2
 
 class Net(nn.Module):
-    def __init__(self, model_name, num_class, pretrained_path):
+    def __init__(self, model_name, num_class):
         super(Net, self).__init__()
 
         if model_name == 'mocov1':
@@ -44,8 +44,6 @@ class Net(nn.Module):
         else:
             assert(False)
 
-        self.load_state_dict(torch.load(pretrained_path, map_location='cpu')['state_dict'], strict=False)
-
     def forward(self, x):
         x = self.f(x)
         feature = torch.flatten(x, start_dim=1)
@@ -61,7 +59,7 @@ def train_val(net, data_loader, train_optimizer, train_scheduler):
     with (torch.enable_grad() if is_train else torch.no_grad()):
         for data, target in data_bar:
             data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
-            out = net(data)
+            out = net.module(data)
             loss = loss_criterion(out, target)
 
             if is_train:
@@ -96,7 +94,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=100, help='Number of sweeps over the dataset to train')
 
     args = parser.parse_args()
-    model_path, batch_size, epochs = args.model_path, args.batch_size, args.epochs
+    model_name, model_path, batch_size, epochs = args.model_name, args.model_path, args.batch_size, args.epochs
     
     train_data = CIFAR10(root='data/', train=True, transform=train_transform, download=True)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
@@ -104,16 +102,20 @@ if __name__ == '__main__':
     test_data = CIFAR10(root='data/', train=False, transform=test_transform, download=True)
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
-    model = Net(args.model_name, num_class=len(train_data.classes), pretrained_path=model_path).cuda()
-    for param in model.f.parameters():
+    model = Net(model_name, num_class=len(train_data.classes))
+    model = nn.DataParallel(model, device_ids=[0, 1, 2, 3]).cuda()
+    model.load_state_dict(torch.load(model_path)['state_dict'], strict=False)
+
+    for param in model.module.f.parameters():
         param.requires_grad = False
 
     flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
     flops, params = clever_format([flops, params])
     print('# Model Params: {} FLOPs: {}'.format(params, flops))
     
-    optimizer = optim.Adam(model.fc.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+    optimizer = optim.Adam(model.module.fc.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
+    
     if model_name.start_with('simclr'):
         scheduler = None
     
