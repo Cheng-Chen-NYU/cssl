@@ -98,7 +98,8 @@ if __name__ == '__main__':
 	
 	elif model_name == 'simclrv1':
 	
-		model = SimCLRv1(arch=args.arch)
+		model = SimCLRv1(arch=args.arch).cuda()
+		# 24.62M 1.31G
 		flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
 		flops, params = clever_format([flops, params])
 		print('# Model Params: {} FLOPs: {}'.format(params, flops))
@@ -107,7 +108,8 @@ if __name__ == '__main__':
 	
 	elif model_name == 'simclrv2':
 
-		model = SimCLRv2(arch=args.arch)
+		model = SimCLRv2(arch=args.arch).cuda()
+		# 26.19M 1.31G
 		flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
 		flops, params = clever_format([flops, params])
 		print('# Model Params: {} FLOPs: {}'.format(params, flops))

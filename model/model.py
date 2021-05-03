@@ -355,15 +355,15 @@ class SimCLRv2(nn.Module):
 		self.f = nn.Sequential(*self.f)
 		# projection head
 		self.g1 = nn.Sequential(
-							nn.Linear(2048, 1024, bias=False),
-							nn.BatchNorm1d(1024),
+							nn.Linear(2048, 3072, bias=False),
+							nn.BatchNorm1d(3072),
 							nn.ReLU(inplace=True)
 						)
 		self.g2 = nn.Sequential(
-							nn.Linear(1024, 512, bias=False),
-							nn.BatchNorm1d(512),
+							nn.Linear(3072, 2048, bias=False),
+							nn.BatchNorm1d(2048),
 							nn.ReLU(inplace=True),
-							nn.Linear(512, feature_dim, bias=True)
+							nn.Linear(2048, feature_dim, bias=True)
 						)
 
 	def forward(self, x):
