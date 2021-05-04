@@ -51,15 +51,24 @@ class Net(nn.Module):
         return out
 
 # train or test for one epoch
-def train_val(net, data_loader, train_optimizer, train_scheduler):
+def train_val(model_name, net, data_loader, train_optimizer, train_scheduler):
     is_train = train_optimizer is not None
-    net.train() if is_train else net.eval()
+
+    if model_name.start_with('simclr'):
+        scheduler = None
+        model = nn.DataParallel(model, device_ids=[0, 1, 2, 3]).cuda()
+    else:
+        model = model.cuda()
+    
+    model.load_state_dict(torch.load(model_path)['state_dict'], strict=False)
+
+    model.train() if is_train else model.eval()
 
     total_loss, total_correct_1, total_correct_5, total_num, data_bar = 0.0, 0.0, 0.0, 0, tqdm(data_loader)
     with (torch.enable_grad() if is_train else torch.no_grad()):
         for data, target in data_bar:
             data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
-            out = net.module(data)
+            out = model(data)
             loss = loss_criterion(out, target)
 
             if is_train:
@@ -103,8 +112,6 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     model = Net(model_name, num_class=len(train_data.classes))
-    model = nn.DataParallel(model, device_ids=[0, 1, 2, 3]).cuda()
-    model.load_state_dict(torch.load(model_path)['state_dict'], strict=False)
 
     for param in model.module.f.parameters():
         param.requires_grad = False
@@ -116,20 +123,17 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.module.fc.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
     
-    if model_name.start_with('simclr'):
-        scheduler = None
-    
     loss_criterion = nn.CrossEntropyLoss()
     results = {'train_loss': [], 'train_acc@1': [], 'train_acc@5': [], 'test_loss': [], 'test_acc@1': [], 'test_acc@5': []}
 
     best_acc = 0.0
 
     for epoch in range(1, epochs + 1):
-        train_loss, train_acc_1, train_acc_5 = train_val(model, train_loader, optimizer, scheduler)
+        train_loss, train_acc_1, train_acc_5 = train_val(model_name, model, train_loader, optimizer, scheduler)
         results['train_loss'].append(train_loss)
         results['train_acc@1'].append(train_acc_1)
         results['train_acc@5'].append(train_acc_5)
-        test_loss, test_acc_1, test_acc_5 = train_val(model, test_loader, None, None)
+        test_loss, test_acc_1, test_acc_5 = train_val(model_name, model, test_loader, None, None)
         results['test_loss'].append(test_loss)
         results['test_acc@1'].append(test_acc_1)
         results['test_acc@5'].append(test_acc_5)
