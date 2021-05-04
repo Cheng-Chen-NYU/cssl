@@ -54,7 +54,6 @@ parser.add_argument('--results_dir', type=str, help='dir to cache (default: none
 parser.add_argument('--resume_path', type=str, help='path to latest checkpoint (default: none)', default='')
 
 if __name__ == '__main__':
-	# torch.cuda.set_device(2)
 
 	args = parser.parse_args()
 
@@ -79,46 +78,54 @@ if __name__ == '__main__':
 	if model_name == 'mocov1':
 	
 		args.cos = True
-		model = MoCov1(feature_dim=args.moco_dim, K=args.moco_k, m=args.moco_m, T=args.temperature, arch=args.arch, bn_splits=8)
+		model = MoCov1(feature_dim=args.moco_dim, K=args.moco_k, m=args.moco_m, T=args.temperature, arch=args.arch, bn_splits=8).cuda()
+		
 		flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(), torch.randn(1, 3, 32, 32).cuda()))
 		flops, params = clever_format([flops, params])
 		print('# Model Params: {} FLOPs: {}'.format(params, flops))
+		
 		optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay, momentum=args.momentum)
 		trainer = mocoTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k, args.learning_rate, args.cos)
 	
 	elif model_name == 'mocov2':
 	
 		args.cos = True
-		model = MoCov2(arch=args.arch),cuda()
+		model = MoCov2(feature_dim=args.moco_dim, K=args.moco_k, m=args.moco_m, T=args.temperature, arch=args.arch, bn_splits=8).cuda()
+		
+		# 49.12M 5.20G
 		flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(), torch.randn(1, 3, 32, 32).cuda()))
 		flops, params = clever_format([flops, params])
 		print('# Model Params: {} FLOPs: {}'.format(params, flops))
+		
 		optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay, momentum=args.momentum)
 		trainer = mocoTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k, args.learning_rate, args.cos)
 	
 	elif model_name == 'simclrv1':
 	
 		model = SimCLRv1(arch=args.arch).cuda()
+		
 		# 24.62M 1.31G
 		flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
 		flops, params = clever_format([flops, params])
 		print('# Model Params: {} FLOPs: {}'.format(params, flops))
+		
 		optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 		trainer = simclrTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k)
 	
 	elif model_name == 'simclrv2':
 
 		model = SimCLRv2(arch=args.arch).cuda()
+		
 		# 26.19M 1.31G
 		flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
 		flops, params = clever_format([flops, params])
 		print('# Model Params: {} FLOPs: {}'.format(params, flops))
+		
 		optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 		trainer = simclrTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k)
 	
 	else:
 		assert(False)
-
 
 	if not os.path.exists(train_log):
 		os.mkdir(train_log)
