@@ -38,9 +38,9 @@ class Net(nn.Module):
             print(model_name)
             # encoder
             base = SimCLRv2()
-            self.f = nn.Sequential(base.f, base.g1)
+            self.f = nn.Sequential(base.f, nn.Flatten(1), base.g1)
             # classifier
-            self.fc = nn.Linear(1024, num_class, bias=True)
+            self.fc = nn.Linear(3072, num_class, bias=True)
         else:
             assert(False)
 
@@ -51,30 +51,30 @@ class Net(nn.Module):
         return out
 
 # train or test for one epoch
-def train_val(model_name, net, data_loader, args):
-    is_train = train_optimizer is not None
-
-    if model_name.start_with('simclr'):
+def train_val(model_name, model, data_loader, args, is_train):
+    
+    if model_name.startswith('simclr'):
         scheduler = None
         model = nn.DataParallel(model, device_ids=[0, 1, 2, 3]).cuda()
+        if model_name == 'simclrv2':
+            model.load_state_dict({k.replace('f.','f.0.'):v for k,v in torch.load(model_path)['state_dict'].items()})
+        else:
+            model.load_state_dict(torch.load(model_path)['state_dict'], strict=False)
     else:
         model = model.cuda()
-    
-    model.load_state_dict(torch.load(model_path)['state_dict'], strict=False)
+        model.load_state_dict({k.replace('encoder_q.','f.'):v for k,v in torch.load(model_path)['state_dict'].items()})
 
     if model_name.start_with('simclr'):
         for param in model.module.f.parameters():
             param.requires_grad = False
 
         train_optimizer = optim.Adam(model.module.fc.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-        train_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
+
     else:
         for param in model.f.parameters():
             param.requires_grad = False
 
         train_optimizer = optim.Adam(model.fc.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-        train_scheduler = None
-
 
     model.train() if is_train else model.eval()
 
@@ -89,8 +89,6 @@ def train_val(model_name, net, data_loader, args):
                 train_optimizer.zero_grad()
                 loss.backward()
                 train_optimizer.step()
-                if train_scheduler:
-                    train_scheduler.step()
 
             total_num += data.size(0)
             total_loss += loss.item() * data.size(0)
@@ -112,8 +110,6 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=512, help='Number of images in each mini-batch')
     parser.add_argument('--learning_rate', type=float, help='learning rate', default=1e-3)
     parser.add_argument('--weight_decay', type=float, help='weight decay factor', default=1e-6)
-    parser.add_argument('--step_size', type=float, help='decay lr every step epochs', default=10)
-    parser.add_argument('--gamma', type=float, help='lr decay factor', default=0.5)
     parser.add_argument('--epochs', type=int, default=100, help='Number of sweeps over the dataset to train')
 
     args = parser.parse_args()
@@ -125,7 +121,7 @@ if __name__ == '__main__':
     test_data = CIFAR10(root='data/', train=False, transform=test_transform, download=True)
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
-    model = Net(model_name, num_class=len(train_data.classes))
+    model = Net(model_name, num_class=len(train_data.classes)).cuda()
 
     flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(),))
     flops, params = clever_format([flops, params])
@@ -137,11 +133,11 @@ if __name__ == '__main__':
     best_acc = 0.0
 
     for epoch in range(1, epochs + 1):
-        train_loss, train_acc_1, train_acc_5 = train_val(model_name, model, train_loader, args)
+        train_loss, train_acc_1, train_acc_5 = train_val(model_name, model, train_loader, args, True)
         results['train_loss'].append(train_loss)
         results['train_acc@1'].append(train_acc_1)
         results['train_acc@5'].append(train_acc_5)
-        test_loss, test_acc_1, test_acc_5 = train_val(model_name, model, test_loader, args)
+        test_loss, test_acc_1, test_acc_5 = train_val(model_name, model, test_loader, args, False)
         results['test_loss'].append(test_loss)
         results['test_acc@1'].append(test_acc_1)
         results['test_acc@5'].append(test_acc_5)
