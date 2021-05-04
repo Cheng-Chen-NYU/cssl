@@ -31,7 +31,6 @@ class ModelBasev1(nn.Module):
 	def __init__(self, feature_dim=128, arch=None, bn_splits=8):
 		super(ModelBasev1, self).__init__()
 
-		# use split batchnorm
 		norm_layer = partial(SplitBatchNorm, num_splits=bn_splits) if bn_splits > 1 else nn.BatchNorm2d
 
 		self.f = []
@@ -95,12 +94,9 @@ class MoCov1(nn.Module):
 
 	@torch.no_grad()
 	def _batch_shuffle_single_gpu(self, x):
-		"""
-		Batch shuffle, for making use of BatchNorm.
-		"""
+		"""Batch shuffle, for making use of BatchNorm."""
 		# random shuffle index
 		idx_shuffle = torch.randperm(x.shape[0]).cuda()
-
 		# index for restoring
 		idx_unshuffle = torch.argsort(idx_shuffle)
 
@@ -108,9 +104,7 @@ class MoCov1(nn.Module):
 
 	@torch.no_grad()
 	def _batch_unshuffle_single_gpu(self, x, idx_unshuffle):
-		"""
-		Undo batch shuffle.
-		"""
+		"""Undo batch shuffle."""
 		return x[idx_unshuffle]
 
 	def contrastive_loss(self, im_q, im_k):
@@ -148,20 +142,14 @@ class MoCov1(nn.Module):
 		return loss, q, k
 
 	def forward(self, im1, im2):
-		"""
-		Input:
-			im_q: a batch of query images
-			im_k: a batch of key images
-		Output:
-			loss
-		"""
 
-		# update the key encoder
-		with torch.no_grad():  # no gradient to keys
+		with torch.no_grad():
 			self._momentum_update_key_encoder()
 
-		# compute loss
-		loss, q, k = self.contrastive_loss(im1, im2)
+		loss_12, q1, k2 = self.contrastive_loss(im1, im2)
+		loss_21, q2, k1 = self.contrastive_loss(im2, im1)
+		loss = loss_12 + loss_21
+		k = torch.cat([k1, k2], dim=0)
 
 		self._dequeue_and_enqueue(k)
 
@@ -185,17 +173,18 @@ class ModelBasev2(nn.Module):
 		self.f = nn.Sequential(*self.f)
 		# fc projector
 		self.g = nn.Sequential(
-							nn.Linear(2048, 512, bias=False),
-							nn.BatchNorm1d(512),
+							nn.Linear(512, 256, bias=False),
+							nn.BatchNorm1d(256),
 							nn.ReLU(inplace=True),
-							nn.Linear(512, feature_dim, bias=True)
+							nn.Dropout(0.3),
+							nn.Linear(256, feature_dim, bias=True)
 						)
 
 	def forward(self, x):
 		x = self.f(x)
 		feature = torch.flatten(x, start_dim=1)
 		out = self.g(feature)
-		return F.normalize(feature, dim=-1), F.normalize(out, dim=-1)
+		return F.normalize(out, dim=-1)
 
 class MoCov2(nn.Module):
 	def __init__(self, feature_dim=128, K=4096, m=0.99, T=0.1, arch='resnet50', bn_splits=8):
@@ -240,9 +229,7 @@ class MoCov2(nn.Module):
 
 	@torch.no_grad()
 	def _batch_shuffle_single_gpu(self, x):
-		"""
-		Batch shuffle, for making use of BatchNorm.
-		"""
+		"""Batch shuffle, for making use of BatchNorm."""
 		# random shuffle index
 		idx_shuffle = torch.randperm(x.shape[0]).cuda()
 
@@ -253,21 +240,19 @@ class MoCov2(nn.Module):
 
 	@torch.no_grad()
 	def _batch_unshuffle_single_gpu(self, x, idx_unshuffle):
-		"""
-		Undo batch shuffle.
-		"""
+		"""Undo batch shuffle."""
 		return x[idx_unshuffle]
 
 	def contrastive_loss(self, im_q, im_k):
 		# compute query features
-		_, q = self.encoder_q(im_q)  # queries: NxC
+		q = self.encoder_q(im_q)  # queries: NxC
 
 		# compute key features
 		with torch.no_grad():  # no gradient to keys
 			# shuffle for making use of BN
 			im_k_, idx_unshuffle = self._batch_shuffle_single_gpu(im_k)
 
-			_, k = self.encoder_k(im_k_)  # keys: NxC
+			k = self.encoder_k(im_k_)  # keys: NxC
 
 			# undo shuffle
 			k = self._batch_unshuffle_single_gpu(k, idx_unshuffle)
@@ -293,19 +278,10 @@ class MoCov2(nn.Module):
 		return loss, q, k
 
 	def forward(self, im1, im2):
-		"""
-		Input:
-			im_q: a batch of query images
-			im_k: a batch of key images
-		Output:
-			loss
-		"""
 
-		# update the key encoder
 		with torch.no_grad():  # no gradient to keys
 			self._momentum_update_key_encoder()
 
-		# compute loss
 		loss_12, q1, k2 = self.contrastive_loss(im1, im2)
 		loss_21, q2, k1 = self.contrastive_loss(im2, im1)
 		loss = loss_12 + loss_21
@@ -358,6 +334,7 @@ class SimCLRv2(nn.Module):
 							nn.Linear(2048, 2048, bias=False),
 							nn.BatchNorm1d(2048),
 							nn.ReLU(inplace=True)
+							nn.Dropout(0.3),
 						)
 		self.g2 = nn.Sequential(
 							nn.Linear(2048, 512, bias=False),
@@ -371,7 +348,4 @@ class SimCLRv2(nn.Module):
 		feature = torch.flatten(x, start_dim=1)
 		out = self.g2(self.g1(feature))
 		return F.normalize(feature, dim=-1), F.normalize(out, dim=-1)
-
-if __name__ == '__main__':
-	pass
 

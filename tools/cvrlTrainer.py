@@ -183,7 +183,7 @@ class mocoTrainer():
 			with torch.no_grad():
 				# generate feature bank
 				for data, target in tqdm(self.memory_loader, desc='Feature extracting'):
-					feature, out = model.encoder_q(data.cuda(non_blocking=True))
+					feature = model.encoder_q(data.cuda(non_blocking=True))
 					feature_bank.append(feature)
 
 				# [D, N]
@@ -195,7 +195,7 @@ class mocoTrainer():
 				test_bar = tqdm(self.test_loader)
 				for data, target in test_bar:
 					data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
-					feature, out = model.encoder_q(data)
+					feature = model.encoder_q(data)
 
 					total_num += data.size(0)
 					# compute cos similarity between each feature vector and feature bank ---> [B, N]
