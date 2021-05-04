@@ -195,7 +195,7 @@ class ModelBasev2(nn.Module):
 		x = self.f(x)
 		feature = torch.flatten(x, start_dim=1)
 		out = self.g(feature)
-		return F.normalize(out, dim=-1)
+		return F.normalize(feature, dim=-1), F.normalize(out, dim=-1)
 
 class MoCov2(nn.Module):
 	def __init__(self, feature_dim=128, K=4096, m=0.99, T=0.1, arch='resnet50', bn_splits=8):
@@ -260,14 +260,14 @@ class MoCov2(nn.Module):
 
 	def contrastive_loss(self, im_q, im_k):
 		# compute query features
-		q = self.encoder_q(im_q)  # queries: NxC
+		_, q = self.encoder_q(im_q)  # queries: NxC
 
 		# compute key features
 		with torch.no_grad():  # no gradient to keys
 			# shuffle for making use of BN
 			im_k_, idx_unshuffle = self._batch_shuffle_single_gpu(im_k)
 
-			k = self.encoder_k(im_k_)  # keys: NxC
+			_, k = self.encoder_k(im_k_)  # keys: NxC
 
 			# undo shuffle
 			k = self._batch_unshuffle_single_gpu(k, idx_unshuffle)
