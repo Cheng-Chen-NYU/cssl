@@ -185,10 +185,10 @@ class ModelBasev2(nn.Module):
 		self.f = nn.Sequential(*self.f)
 		# fc projector
 		self.g = nn.Sequential(
-							nn.Linear(512, 256, bias=False),
-							nn.BatchNorm1d(256),
+							nn.Linear(2048, 512, bias=False),
+							nn.BatchNorm1d(512),
 							nn.ReLU(inplace=True),
-							nn.Linear(256, feature_dim, bias=True)
+							nn.Linear(512, feature_dim, bias=True)
 						)
 
 	def forward(self, x):
@@ -198,7 +198,7 @@ class ModelBasev2(nn.Module):
 		return F.normalize(out, dim=-1)
 
 class MoCov2(nn.Module):
-	def __init__(self, feature_dim=128, K=4096, m=0.99, T=0.1, arch='resnet18', bn_splits=8):
+	def __init__(self, feature_dim=128, K=4096, m=0.99, T=0.1, arch='resnet50', bn_splits=8):
 		super(MoCov2, self).__init__()
 
 		self.K = K

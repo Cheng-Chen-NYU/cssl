@@ -80,22 +80,13 @@ if __name__ == '__main__':
 		args.cos = True
 		model = MoCov1(feature_dim=args.moco_dim, K=args.moco_k, m=args.moco_m, T=args.temperature, arch=args.arch, bn_splits=8).cuda()
 		
-		flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(), torch.randn(1, 3, 32, 32).cuda()))
-		flops, params = clever_format([flops, params])
-		print('# Model Params: {} FLOPs: {}'.format(params, flops))
-		
 		optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay, momentum=args.momentum)
 		trainer = mocoTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k, args.learning_rate, args.cos)
 	
 	elif model_name == 'mocov2':
 	
 		args.cos = True
-		model = MoCov2(feature_dim=args.moco_dim, K=args.moco_k, m=args.moco_m, T=args.temperature, arch=args.arch, bn_splits=8).cuda()
-		
-		# 49.12M 5.20G
-		flops, params = profile(model, inputs=(torch.randn(1, 3, 32, 32).cuda(), torch.randn(1, 3, 32, 32).cuda()))
-		flops, params = clever_format([flops, params])
-		print('# Model Params: {} FLOPs: {}'.format(params, flops))
+		model = MoCov2(feature_dim=args.moco_dim, K=args.moco_k, m=args.moco_m, T=args.temperature, arch=args.arch, bn_splits=2).cuda()
 		
 		optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay, momentum=args.momentum)
 		trainer = mocoTrainer(train_log, model, train_iter, memory_iter, test_iter, optimizer, args.temperature, args.k, args.learning_rate, args.cos)
