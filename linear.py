@@ -16,18 +16,20 @@ class Net(nn.Module):
     def __init__(self, model_name, num_class):
         super(Net, self).__init__()
 
+        self.model_name = model_name
+
         if model_name == 'mocov1':
             print(model_name)
             # encoder
             self.f = MoCov1().encoder_q
             # classifier
-            self.fc = nn.Linear(128, num_class, bias=True)
+            self.fc = nn.Linear(512, num_class, bias=True)
         elif model_name == 'mocov2':
             print(model_name)
             # encoder
             self.f = MoCov2().encoder_q
             # classifier
-            self.fc = nn.Linear(128, num_class, bias=True)
+            self.fc = nn.Linear(512, num_class, bias=True)
         elif model_name == 'simclrv1':
             print(model_name)
             # encoder
@@ -45,7 +47,10 @@ class Net(nn.Module):
             assert(False)
 
     def forward(self, x):
-        x = self.f(x)
+        if self.model_name.startswith('moco'):
+            x = self.f.f(x)
+        else:
+            x = self.f(x)
         feature = torch.flatten(x, start_dim=1)
         out = self.fc(feature)
         return out
@@ -57,14 +62,14 @@ def train_val(model_name, model, data_loader, args, is_train):
         scheduler = None
         model = nn.DataParallel(model, device_ids=[0, 1, 2, 3]).cuda()
         if model_name == 'simclrv2':
-            model.load_state_dict({k.replace('f.','f.0.'):v for k,v in torch.load(model_path)['state_dict'].items()})
+            model.load_state_dict({k.replace('f.','f.0.'):v for k,v in torch.load(model_path)['state_dict'].items()}, strict=False)
         else:
             model.load_state_dict(torch.load(model_path)['state_dict'], strict=False)
     else:
         model = model.cuda()
-        model.load_state_dict({k.replace('encoder_q.','f.'):v for k,v in torch.load(model_path)['state_dict'].items()})
+        model.load_state_dict({k.replace('encoder_q.','f.'):v for k,v in torch.load(model_path)['state_dict'].items()}, strict=False)
 
-    if model_name.start_with('simclr'):
+    if model_name.startswith('simclr'):
         for param in model.module.f.parameters():
             param.requires_grad = False
 

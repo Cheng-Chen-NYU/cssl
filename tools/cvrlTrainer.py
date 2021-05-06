@@ -143,7 +143,7 @@ class mocoTrainer():
 
 	def train(self, resume, epoch_start, epochs):
 		results = {'train_loss': [], 'test_acc@1': [], 'test_acc@5': []}
-		model = nn.DataParallel(self.model, device_ids=[0, 1, 2, 3]).cuda()
+		model = self.model.cuda()
 
 		batch_size = self.train_loader.batch_size
 		c = len(self.memory_loader.dataset.classes)
@@ -166,7 +166,7 @@ class mocoTrainer():
 			for im_1, im_2, _ in train_bar:
 				im_1, im_2 = im_1.cuda(non_blocking=True), im_2.cuda(non_blocking=True)
 
-				loss = model(im_1, im_2).mean()
+				loss = model(im_1, im_2)
 
 				self.optimizer.zero_grad()
 				loss.backward()

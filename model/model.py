@@ -159,7 +159,6 @@ class ModelBasev2(nn.Module):
 	def __init__(self, feature_dim=128, arch=None, bn_splits=8):
 		super(ModelBasev2, self).__init__()
 
-		# use split batchnorm
 		norm_layer = partial(SplitBatchNorm, num_splits=bn_splits) if bn_splits > 1 else nn.BatchNorm2d
 
 		self.f = []
@@ -169,15 +168,13 @@ class ModelBasev2(nn.Module):
 			if not isinstance(module, nn.Linear) and not isinstance(module, nn.MaxPool2d):
 				self.f.append(module)
 		
-		# encoder
 		self.f = nn.Sequential(*self.f)
-		# fc projector
 		self.g = nn.Sequential(
-							nn.Linear(512, 256, bias=False),
-							nn.BatchNorm1d(256),
+							nn.Linear(512, 1024, bias=False),
+							nn.BatchNorm1d(1024),
 							nn.ReLU(inplace=True),
 							nn.Dropout(0.3),
-							nn.Linear(256, feature_dim, bias=True)
+							nn.Linear(1024, feature_dim, bias=True)
 						)
 
 	def forward(self, x):
@@ -333,7 +330,7 @@ class SimCLRv2(nn.Module):
 		self.g1 = nn.Sequential(
 							nn.Linear(2048, 2048, bias=False),
 							nn.BatchNorm1d(2048),
-							nn.ReLU(inplace=True)
+							nn.ReLU(inplace=True),
 							nn.Dropout(0.3),
 						)
 		self.g2 = nn.Sequential(
