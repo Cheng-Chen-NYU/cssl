@@ -19,25 +19,21 @@ class Net(nn.Module):
         self.model_name = model_name
 
         if model_name == 'mocov1':
-            print(model_name)
             # encoder
             self.f = MoCov1().encoder_q
             # classifier
             self.fc = nn.Linear(512, num_class, bias=True)
         elif model_name == 'mocov2':
-            print(model_name)
             # encoder
             self.f = MoCov2().encoder_q
             # classifier
             self.fc = nn.Linear(512, num_class, bias=True)
         elif model_name == 'simclrv1':
-            print(model_name)
             # encoder
             self.f = SimCLRv1().f
             # classifier
             self.fc = nn.Linear(2048, num_class, bias=True)
         elif model_name == 'simclrv2':
-            print(model_name)
             # encoder
             base = SimCLRv2()
             self.f = nn.Sequential(base.f, nn.Flatten(1), base.g1)
