@@ -7,12 +7,12 @@
 #SBATCH --mem=10GB
 #SBATCH --gres=gpu:1
 
-cd /scratch/$USER/cvrl
+cd /ibex/scratch/$USER/cc/cvrl
 
 nvidia-smi
 
-module purge
-module load python/3.8.0
+# module purge
+module load python/3.8.1
 
 pip install torch
 pip install torchvision
