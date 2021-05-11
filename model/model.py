@@ -170,9 +170,9 @@ class ModelBasev2(nn.Module):
 		
 		self.f = nn.Sequential(*self.f)
 		self.g = nn.Sequential(
-							nn.Linear(512, 256, bias=False),
-							nn.BatchNorm1d(256),
-							nn.ReLU(inplace=True),
+							# nn.Linear(512, 256, bias=False),
+							# nn.BatchNorm1d(256),
+							# nn.ReLU(inplace=True),
 							# nn.Dropout(0.3),
 							nn.Linear(512, feature_dim, bias=True)
 						)
