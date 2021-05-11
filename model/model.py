@@ -170,11 +170,11 @@ class ModelBasev2(nn.Module):
 		
 		self.f = nn.Sequential(*self.f)
 		self.g = nn.Sequential(
-							nn.Linear(512, 1024, bias=False),
-							nn.BatchNorm1d(1024),
+							nn.Linear(512, 256, bias=False),
+							nn.BatchNorm1d(256),
 							nn.ReLU(inplace=True),
-							nn.Dropout(0.3),
-							nn.Linear(1024, feature_dim, bias=True)
+							# nn.Dropout(0.3),
+							nn.Linear(512, feature_dim, bias=True)
 						)
 
 	def forward(self, x):
@@ -328,13 +328,13 @@ class SimCLRv2(nn.Module):
 		self.f = nn.Sequential(*self.f)
 		# projection head
 		self.g1 = nn.Sequential(
-							nn.Linear(2048, 2048, bias=False),
-							nn.BatchNorm1d(2048),
+							nn.Linear(2048, 3072, bias=False),
+							nn.BatchNorm1d(3072),
 							nn.ReLU(inplace=True),
 							nn.Dropout(0.3),
 						)
 		self.g2 = nn.Sequential(
-							nn.Linear(2048, 512, bias=False),
+							nn.Linear(3072, 512, bias=False),
 							nn.BatchNorm1d(512),
 							nn.ReLU(inplace=True),
 							nn.Linear(512, feature_dim, bias=True)
