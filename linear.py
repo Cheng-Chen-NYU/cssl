@@ -38,7 +38,7 @@ class Net(nn.Module):
             base = SimCLRv2()
             self.f = nn.Sequential(base.f, nn.Flatten(1), base.g1)
             # classifier
-            self.fc = nn.Linear(3072, num_class, bias=True)
+            self.fc = nn.Linear(1024, num_class, bias=True)
         else:
             assert(False)
 

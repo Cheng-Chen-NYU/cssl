@@ -186,7 +186,7 @@ class mocoTrainer():
 					feature = model.encoder_q(data.cuda(non_blocking=True))
 					feature_bank.append(feature)
 
-				# [D, N]
+				# [D(Dimension), N(Number of data points)]
 				feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
 				# [N]
 				feature_labels = torch.tensor(self.memory_loader.dataset.targets, device=feature_bank.device)
@@ -200,7 +200,7 @@ class mocoTrainer():
 					total_num += data.size(0)
 					# compute cos similarity between each feature vector and feature bank ---> [B, N]
 					sim_matrix = torch.mm(feature, feature_bank)
-					# [B, K]
+					# [B(Batch size), K(top-k)]
 					sim_weight, sim_indices = sim_matrix.topk(k=self.k, dim=-1)
 					# [B, K]
 					sim_labels = torch.gather(feature_labels.expand(data.size(0), -1), dim=-1, index=sim_indices)

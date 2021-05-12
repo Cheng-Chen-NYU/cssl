@@ -3,7 +3,7 @@
 #SBATCH --job-name=cvrlGPU
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=03:00:00
+#SBATCH --time=10:00:00
 #SBATCH --mem=10GB
 #SBATCH --gres=gpu:1
 
