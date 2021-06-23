@@ -3,6 +3,8 @@
 
 - Contrastive self-supervised methods MoCo and SimCLR on CIFAR10
 
+![](./pics/SSL.png)
+
 *Implementation adapted from https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb and https://github.com/leftthomas/SimCLR.*
 
 ```
